@@ -17,6 +17,17 @@ const ChatBox = () => {
     [dispatch]
   );
 
+  const handleRetry = useCallback(() => {
+    // Find the last user message to retry
+    const lastUserMessage = [...messages].reverse().find((m) => m.role === 'user');
+    if (lastUserMessage) {
+      dispatch(sendMessage(lastUserMessage.content));
+    } else {
+      // If no user message found, just clear the error
+      dispatch(clearError());
+    }
+  }, [dispatch, messages]);
+
   return (
     <div className="flex flex-col h-[90vh] w-full max-w-4xl mx-auto bg-white rounded-2xl shadow-2xl overflow-hidden border border-gray-200">
 
@@ -43,7 +54,7 @@ const ChatBox = () => {
 
       {error && (
         <div className="p-3">
-          <ErrorMessage message={error} onRetry={() => dispatch(clearError())} />
+          <ErrorMessage message={error} onRetry={handleRetry} />
         </div>
       )}
 
@@ -61,4 +72,3 @@ const ChatBox = () => {
 };
 
 export default React.memo(ChatBox);
-
