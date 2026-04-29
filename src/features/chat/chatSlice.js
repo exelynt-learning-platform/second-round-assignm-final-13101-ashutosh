@@ -5,16 +5,13 @@ export const sendMessage = createAsyncThunk(
   'chat/sendMessage',
   async (messageContent, { getState, rejectWithValue, dispatch }) => {
     try {
-      // Optimistically add user message
       dispatch(addUserMessage({ role: 'user', content: messageContent }));
 
       const { chat } = getState();
-      // Only send the payload format required by OpenAI
       const payloadMessages = chat.messages.map(({ role, content }) => ({ role, content }));
 
-      const response = await fetchChatCompletion(payloadMessages);
-      const botMessage = response.choices[0].message;
-      return botMessage;
+      const responseText = await fetchChatCompletion(payloadMessages);
+      return { role: 'assistant', content: responseText };
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -22,7 +19,7 @@ export const sendMessage = createAsyncThunk(
 );
 
 const initialState = {
-  messages: [],
+  messages: JSON.parse(localStorage.getItem('chatHistory')) || [],
   loading: false,
   error: null,
 };
@@ -33,18 +30,14 @@ const chatSlice = createSlice({
   reducers: {
     addUserMessage: (state, action) => {
       state.messages.push(action.payload);
-    },
-    addBotMessage: (state, action) => {
-      state.messages.push(action.payload);
-    },
-    setLoading: (state, action) => {
-      state.loading = action.payload;
-    },
-    setError: (state, action) => {
-      state.error = action.payload;
+      localStorage.setItem('chatHistory', JSON.stringify(state.messages));
     },
     clearError: (state) => {
       state.error = null;
+    },
+    clearHistory: (state) => {
+      state.messages = [];
+      localStorage.removeItem('chatHistory');
     },
   },
   extraReducers: (builder) => {
@@ -56,6 +49,7 @@ const chatSlice = createSlice({
       .addCase(sendMessage.fulfilled, (state, action) => {
         state.loading = false;
         state.messages.push(action.payload);
+        localStorage.setItem('chatHistory', JSON.stringify(state.messages));
       })
       .addCase(sendMessage.rejected, (state, action) => {
         state.loading = false;
@@ -64,12 +58,5 @@ const chatSlice = createSlice({
   },
 });
 
-export const {
-  addUserMessage,
-  addBotMessage,
-  setLoading,
-  setError,
-  clearError,
-} = chatSlice.actions;
-
+export const { addUserMessage, clearError, clearHistory } = chatSlice.actions;
 export default chatSlice.reducer;

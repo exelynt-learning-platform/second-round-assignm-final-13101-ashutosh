@@ -1,34 +1,39 @@
 import axios from 'axios';
 
-const OPENAI_API_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 export const fetchChatCompletion = async (messages) => {
-  const apiKey = import.meta.env.VITE_OPENAI_API_KEY;
+  const apiKey = import.meta.env.VITE_OPENROUTER_API_KEY;
 
   if (!apiKey) {
-    throw new Error('API key is missing.');
+    throw new Error('OpenRouter API key is missing.');
   }
 
   try {
     const response = await axios.post(
-      OPENAI_API_URL,
+      OPENROUTER_API_URL,
       {
-        model: 'gpt-3.5-turbo',
+        model: 'openai/gpt-oss-120b:free', // change model if needed
         messages,
       },
       {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
+          'HTTP-Referer': window.location.origin, // your site URL
+          'X-OpenRouter-Title': 'ChatBox',    // your app name
         },
       }
     );
-    return response.data;
+
+    // Return only the assistant's reply text
+    return response.data.choices[0].message?.content || response.data.choices[0].content
+
   } catch (error) {
     if (error.response) {
       throw new Error(error.response.data.error?.message || 'API Error');
     } else if (error.request) {
-      throw new Error('Network Error: Unable to connect to OpenAI');
+      throw new Error('Network Error: Unable to connect to OpenRouter');
     } else {
       throw new Error(error.message);
     }
